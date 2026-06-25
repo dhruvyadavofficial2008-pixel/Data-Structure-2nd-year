@@ -1,0 +1,277 @@
+import tkinter as tk
+from tkinter import messagebox, ttk
+
+class Student:
+    def __init__(self, student_id, name, age, grade):
+        self.student_id = student_id
+        self.name = name
+        self.age = age
+        self.grade = grade
+
+    def __str__(self):
+        return f"ID: {self.student_id}, Name: {self.name}, Age: {self.age}, Grade: {self.grade:.2f}"
+
+students = []          
+next_id = 1            
+
+def create_student(name, age, grade):
+    global next_id
+    try:
+        age = int(age)
+        grade = float(grade)
+        student = Student(next_id, name.strip(), age, grade)
+        students.append(student)
+        next_id += 1
+        return student
+    except ValueError:
+        raise ValueError("Age must be integer and grade must be number.")
+
+def read_students():
+    return students[:]  
+
+def update_student(student_id, name=None, age=None, grade=None):
+    for s in students:
+        if s.student_id == student_id:
+            if name is not None:
+                s.name = name.strip()
+            if age is not None:
+                s.age = int(age)
+            if grade is not None:
+                s.grade = float(grade)
+            return True
+    return False
+
+def delete_student(student_id):
+    for i, s in enumerate(students):
+        if s.student_id == student_id:
+            del students[i]
+            return True
+    return False
+
+def find_student(student_id):
+    for s in students:
+        if s.student_id == student_id:
+            return s
+    return None
+
+def cli():
+    while True:
+        print("\n===== STUDENT ADT - COMMAND LINE =====")
+        print("1. Create Student")
+        print("2. Read All Students")
+        print("3. Update Student")
+        print("4. Delete Student")
+        print("5. Exit")
+        choice = input("Enter choice: ").strip()
+        
+        if choice == '1':
+            name = input("Name: ")
+            age = input("Age: ")
+            grade = input("Grade: ")
+            try:
+                s = create_student(name, age, grade)
+                print(f"Created: {s}")
+            except ValueError as e:
+                print("Error:", e)
+        elif choice == '2':
+            if not students:
+                print("No students.")
+            else:
+                for s in students:
+                    print(s)
+        elif choice == '3':
+            sid = int(input("Student ID to update: "))
+            s = find_student(sid)
+            if not s:
+                print("Student not found.")
+            else:
+                name = input("New name (leave blank to keep): ")
+                age = input("New age (leave blank to keep): ")
+                grade = input("New grade (leave blank to keep): ")
+                try:
+                    update_student(sid,
+                                   name if name else None,
+                                   age if age else None,
+                                   grade if grade else None)
+                    print("Updated successfully.")
+                except ValueError as e:
+                    print("Error:", e)
+        elif choice == '4':
+            sid = int(input("Student ID to delete: "))
+            if delete_student(sid):
+                print("Deleted.")
+            else:
+                print("Student not found.")
+        elif choice == '5':
+            break
+        else:
+            print("Invalid choice.")
+
+class StudentGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Student ADT - GUI")
+        self.root.geometry("500x400")
+        
+        self.id_var = tk.StringVar()
+        self.name_var = tk.StringVar()
+        self.age_var = tk.StringVar()
+        self.grade_var = tk.StringVar()
+        self.search_id_var = tk.StringVar()
+        
+        self.create_widgets()
+        self.refresh_list()
+    
+    def create_widgets(self):
+        input_frame = tk.LabelFrame(self.root, text="Student Details", padx=5, pady=5)
+        input_frame.pack(fill="x", padx=10, pady=5)
+        
+        tk.Label(input_frame, text="ID (auto)").grid(row=0, column=0, sticky="w")
+        tk.Entry(input_frame, textvariable=self.id_var, state="disabled", width=10).grid(row=0, column=1)
+        
+        tk.Label(input_frame, text="Name").grid(row=0, column=2, sticky="w", padx=(10,0))
+        tk.Entry(input_frame, textvariable=self.name_var, width=15).grid(row=0, column=3)
+        
+        tk.Label(input_frame, text="Age").grid(row=0, column=4, sticky="w", padx=(10,0))
+        tk.Entry(input_frame, textvariable=self.age_var, width=8).grid(row=0, column=5)
+        
+        tk.Label(input_frame, text="Grade").grid(row=0, column=6, sticky="w", padx=(10,0))
+        tk.Entry(input_frame, textvariable=self.grade_var, width=8).grid(row=0, column=7)
+        
+        btn_frame = tk.Frame(self.root)
+        btn_frame.pack(pady=5)
+        
+        tk.Button(btn_frame, text="Create", command=self.create).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Update", command=self.update).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Delete", command=self.delete).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Clear", command=self.clear_fields).pack(side="left", padx=5)
+        
+        list_frame = tk.LabelFrame(self.root, text="Student List", padx=5, pady=5)
+        list_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        self.tree = ttk.Treeview(list_frame, columns=("ID", "Name", "Age", "Grade"), show="headings")
+        self.tree.heading("ID", text="ID")
+        self.tree.heading("Name", text="Name")
+        self.tree.heading("Age", text="Age")
+        self.tree.heading("Grade", text="Grade")
+        self.tree.column("ID", width=50)
+        self.tree.column("Name", width=120)
+        self.tree.column("Age", width=60)
+        self.tree.column("Grade", width=80)
+        self.tree.pack(fill="both", expand=True)
+        
+        self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        
+        search_frame = tk.Frame(self.root)
+        search_frame.pack(fill="x", padx=10, pady=5)
+        tk.Label(search_frame, text="Search by ID:").pack(side="left")
+        tk.Entry(search_frame, textvariable=self.search_id_var, width=10).pack(side="left", padx=5)
+        tk.Button(search_frame, text="Find", command=self.search).pack(side="left", padx=5)
+        tk.Button(search_frame, text="Refresh", command=self.refresh_list).pack(side="left", padx=5)
+    
+    def refresh_list(self):
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+        for s in students:
+            self.tree.insert("", "end", values=(s.student_id, s.name, s.age, f"{s.grade:.2f}"))
+    
+    def on_select(self, event):
+        selected = self.tree.selection()
+        if selected:
+            values = self.tree.item(selected[0], "values")
+            self.id_var.set(values[0])
+            self.name_var.set(values[1])
+            self.age_var.set(values[2])
+            self.grade_var.set(values[3])
+    
+    def clear_fields(self):
+        self.id_var.set("")
+        self.name_var.set("")
+        self.age_var.set("")
+        self.grade_var.set("")
+        self.search_id_var.set("")
+    
+    def create(self):
+        name = self.name_var.get().strip()
+        age = self.age_var.get().strip()
+        grade = self.grade_var.get().strip()
+        if not name or not age or not grade:
+            messagebox.showerror("Error", "All fields are required.")
+            return
+        try:
+            s = create_student(name, age, grade)
+            self.refresh_list()
+            self.clear_fields()
+            messagebox.showinfo("Success", f"Created: {s}")
+        except ValueError as e:
+            messagebox.showerror("Error", str(e))
+    
+    def update(self):
+        sid = self.id_var.get().strip()
+        if not sid:
+            messagebox.showerror("Error", "Select a student from the list first.")
+            return
+        sid = int(sid)
+        name = self.name_var.get().strip()
+        age = self.age_var.get().strip()
+        grade = self.grade_var.get().strip()
+        try:
+            if update_student(sid,
+                              name if name else None,
+                              age if age else None,
+                              grade if grade else None):
+                self.refresh_list()
+                self.clear_fields()
+                messagebox.showinfo("Success", "Updated successfully.")
+            else:
+                messagebox.showerror("Error", "Student not found.")
+        except ValueError as e:
+            messagebox.showerror("Error", str(e))
+    
+    def delete(self):
+        sid = self.id_var.get().strip()
+        if not sid:
+            messagebox.showerror("Error", "Select a student from the list first.")
+            return
+        sid = int(sid)
+        if delete_student(sid):
+            self.refresh_list()
+            self.clear_fields()
+            messagebox.showinfo("Success", "Deleted.")
+        else:
+            messagebox.showerror("Error", "Student not found.")
+    
+    def search(self):
+        sid = self.search_id_var.get().strip()
+        if not sid:
+            self.refresh_list()
+            return
+        try:
+            sid = int(sid)
+            s = find_student(sid)
+            if s:
+                for row in self.tree.get_children():
+                    self.tree.delete(row)
+                self.tree.insert("", "end", values=(s.student_id, s.name, s.age, f"{s.grade:.2f}"))
+            else:
+                messagebox.showinfo("Not found", f"No student with ID {sid}")
+        except ValueError:
+            messagebox.showerror("Error", "ID must be a number.")
+
+def main():
+    print("Choose interface:")
+    print("1. Command-Line")
+    print("2. GUI (Tkinter)")
+    choice = input("Enter 1 or 2: ").strip()
+    
+    if choice == '1':
+        cli()
+    elif choice == '2':
+        root = tk.Tk()
+        app = StudentGUI(root)
+        root.mainloop()
+    else:
+        print("Invalid choice. Exiting.")
+
+if __name__ == "__main__":
+    main()
