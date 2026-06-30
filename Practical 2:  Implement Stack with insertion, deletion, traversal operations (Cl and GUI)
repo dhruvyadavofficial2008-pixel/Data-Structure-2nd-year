@@ -1,0 +1,235 @@
+import tkinter as tk
+from tkinter import messagebox
+
+class Stack:
+    def __init__(self):
+        self.items = []
+
+    def push(self, item):
+        self.items.append(item)
+
+    def pop(self):
+        if not self.is_empty():
+            return self.items.pop()
+        raise IndexError("Pop from empty stack")
+
+    def peek(self):
+        if not self.is_empty():
+            return self.items[-1]
+        return None
+
+    def is_empty(self):
+        return len(self.items) == 0
+
+    def size(self):
+        return len(self.items)
+
+    def display(self):
+        return self.items.copy()
+
+def console_stack():
+    s = Stack()
+    while True:
+        print("\n--- Stack Operations ---")
+        print("1. Push")
+        print("2. Pop")
+        print("3. Peek")
+        print("4. Display")
+        print("5. Exit")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            item = input("Enter item to push: ")
+            s.push(item)
+            print(f"Pushed '{item}'")
+        elif choice == '2':
+            try:
+                item = s.pop()
+                print(f"Popped '{item}'")
+            except IndexError as e:
+                print(e)
+        elif choice == '3':
+            item = s.peek()
+            if item is None:
+                print("Stack is empty")
+            else:
+                print(f"Top item: '{item}'")
+        elif choice == '4':
+            items = s.display()
+            if not items:
+                print("Stack is empty")
+            else:
+                print("Stack contents (bottom → top):", items)
+        elif choice == '5':
+            print("Exiting CLI...")
+            break
+        else:
+            print("Invalid choice, try again.")
+
+
+def gui_stack():
+    s = Stack()
+    root = tk.Tk()
+    root.title("Stack GUI")
+
+    tk.Label(root, text="Value:").grid(row=0, column=0, padx=5, pady=5)
+    entry = tk.Entry(root, width=15)
+    entry.grid(row=0, column=1, padx=5, pady=5)
+
+    tk.Label(root, text="Stack (bottom → top):").grid(row=1, column=0, columnspan=2)
+    listbox = tk.Listbox(root, height=10, width=30)
+    listbox.grid(row=2, column=0, columnspan=2, padx=5, pady=5)
+
+    def refresh_display():
+        listbox.delete(0, tk.END)
+        for item in s.display():
+            listbox.insert(tk.END, item)
+
+    def push_action():
+        val = entry.get().strip()
+        if val:
+            s.push(val)
+            refresh_display()
+            entry.delete(0, tk.END)
+        else:
+            messagebox.showwarning("Warning", "Enter a value to push.")
+
+    def pop_action():
+        try:
+            item = s.pop()
+            messagebox.showinfo("Pop", f"Popped: {item}")
+            refresh_display()
+        except IndexError:
+            messagebox.showerror("Error", "Stack is empty")
+
+    def peek_action():
+        item = s.peek()
+        if item is None:
+            messagebox.showinfo("Peek", "Stack is empty")
+        else:
+            messagebox.showinfo("Peek", f"Top item: {item}")
+
+    tk.Button(root, text="Push", command=push_action, width=8).grid(row=3, column=0, padx=5, pady=5)
+    tk.Button(root, text="Pop", command=pop_action, width=8).grid(row=3, column=1, padx=5, pady=5)
+    tk.Button(root, text="Peek", command=peek_action, width=8).grid(row=4, column=0, padx=5, pady=5)
+    tk.Button(root, text="Exit", command=root.quit, width=8).grid(row=4, column=1, padx=5, pady=5)
+
+    root.mainloop()
+
+
+def delimiter_match(expr):
+    s = Stack()
+    pairs = {')': '(', ']': '[', '}': '{'}
+    for ch in expr:
+        if ch in '([{':
+            s.push(ch)
+        elif ch in ')]}':
+            if s.is_empty() or s.pop() != pairs[ch]:
+                return False
+    return s.is_empty()
+
+
+class UndoableText:
+    def __init__(self):
+        self.text = ""
+        self.undo_stack = Stack()
+        self.redo_stack = Stack()
+
+    def insert(self, char):
+        self.undo_stack.push(('insert', char))
+        self.text += char
+        self.redo_stack = Stack()  
+
+    def undo(self):
+        if self.undo_stack.is_empty():
+            print("Nothing to undo")
+            return
+        action = self.undo_stack.pop()
+        if action[0] == 'insert':
+            self.text = self.text[:-1]
+            self.redo_stack.push(('insert', action[1]))
+
+    def redo(self):
+        if self.redo_stack.is_empty():
+            print("Nothing to redo")
+            return
+        action = self.redo_stack.pop()
+        if action[0] == 'insert':
+            self.text += action[1]
+            self.undo_stack.push(action)
+
+
+def prefix_to_postfix(prefix):
+    s = Stack()
+    operators = set(['+', '-', '*', '/', '^'])
+    for ch in reversed(prefix):
+        if ch not in operators:
+            s.push(ch)
+        else:
+            op1 = s.pop()
+            op2 = s.pop()
+            s.push(op1 + op2 + ch)
+    return s.pop() if not s.is_empty() else ""
+
+def evaluate_prefix(prefix):
+    s = Stack()
+    operators = {'+', '-', '*', '/', '^'}
+    for ch in reversed(prefix):
+        if ch not in operators:
+            s.push(float(ch))
+        else:
+            op1 = s.pop()
+            op2 = s.pop()
+            if ch == '+':
+                s.push(op1 + op2)
+            elif ch == '-':
+                s.push(op1 - op2)
+            elif ch == '*':
+                s.push(op1 * op2)
+            elif ch == '/':
+                s.push(op1 / op2)
+            elif ch == '^':
+                s.push(op1 ** op2)
+    return s.pop()
+
+
+def main():
+    print("Choose interface:")
+    print("1. Console (CLI)")
+    print("2. GUI (Tkinter)")
+    choice = input("Enter choice (1/2): ").strip()
+    if choice == '1':
+        console_stack()
+    elif choice == '2':
+        gui_stack()
+    else:
+        print("Invalid choice, running console by default.")
+        console_stack()
+
+    print("\n" + "="*50)
+    print("--- Delimiter Matching Demo ---")
+    expr = input("Enter an expression with brackets (e.g., {[()]}): ")
+    print("Balanced?" if delimiter_match(expr) else "Not balanced")
+
+    print("\n--- Undo/Redo Demo ---")
+    editor = UndoableText()
+    for ch in "Hello":
+        editor.insert(ch)
+    print("Text after 'Hello':", editor.text)
+    editor.undo()
+    print("After undo:", editor.text)
+    editor.redo()
+    print("After redo:", editor.text)
+
+    print("\n--- Prefix Conversion & Evaluation Demo ---")
+    pref = input("Enter a prefix expression (e.g., + 3 4, use no spaces): ").replace(" ", "")
+    post = prefix_to_postfix(pref)
+    print("Postfix:", post)
+    try:
+        val = evaluate_prefix(pref)
+        print("Evaluation result:", val)
+    except Exception as e:
+        print("Error evaluating:", e)
+
+if __name__ == "__main__":
+    main()
